@@ -5,9 +5,13 @@ import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import Products from "./pages/Products";
 import Footer from "./layout/Footer";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function App() {
+  const queryClient = new QueryClient();
+
   return (
+    <QueryClientProvider client={queryClient}>
     <Router>
       <div className="App">
         <Navbar />
@@ -24,6 +28,7 @@ function App() {
         </div>
       </div>
     </Router>
+    </QueryClientProvider>
   );
 }
 
