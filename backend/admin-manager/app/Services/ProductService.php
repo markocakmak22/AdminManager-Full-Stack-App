@@ -3,31 +3,42 @@
 namespace App\Services;
 
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Collection;
 
 class ProductService
 {
-    public function getAllProducts()
+    protected $product;
+
+    public function __construct(Product $product)
     {
-        return Product::with('category')->get();
+        $this->product = $product;
     }
 
-    public function createProduct(array $data)
+    public function getAllProducts(): Collection
     {
-        return Product::create($data);
+        return $this->product->with('category')->get();
     }
 
-    public function getProductById(Product $product)
+    public function createProduct(array $data): Product
+    {
+        $product = $this->product->create($data);
+        $product->load('category');
+        return $product;
+    }
+
+    public function getProductById(Product $product): Product
     {
         return $product->load('category');
     }
 
-    public function updateProduct(Product $product, array $data)
+    public function updateProduct(Product $product, array $data): Product
     {
         $product->update($data);
+        $product->load('category');
         return $product;
     }
 
-    public function deleteProduct(Product $product)
+    public function deleteProduct(Product $product): void
     {
         $product->delete();
     }
