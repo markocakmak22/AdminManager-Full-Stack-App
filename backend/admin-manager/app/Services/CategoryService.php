@@ -3,31 +3,39 @@
 namespace App\Services;
 
 use App\Models\Category;
+use Illuminate\Database\Eloquent\Collection;
 
 class CategoryService
 {
-    public function getAllCategories()
+    protected $category;
+
+    public function __construct(Category $category)
     {
-        return Category::all();
+        $this->category = $category;
     }
 
-    public function createCategory(array $data)
+    public function getAllCategories(): Collection
     {
-        return Category::create($data);
+        return $this->category->all();
     }
 
-    public function getCategoryById(Category $category)
+    public function createCategory(array $data): Category
+    {
+        return $this->category->create($data);
+    }
+
+    public function getCategoryById(Category $category): Category
     {
         return $category;
     }
 
-    public function updateCategory(Category $category, array $data)
+    public function updateCategory(Category $category, array $data): Category
     {
         $category->update($data);
         return $category;
     }
 
-    public function deleteCategory(Category $category)
+    public function deleteCategory(Category $category): void
     {
         $category->delete();
     }
