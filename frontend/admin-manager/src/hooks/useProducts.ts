@@ -3,7 +3,7 @@ import { productService } from "../services/productService";
 import { Product } from "../types/types";
 import { useState } from "react";
 
-export const useProducts = (closeForm:()=>void, onMessage:(msg: string)=>void) => {
+export const useProducts = (closeForm: () => void = () => {},onMessage: (msg: string) => void = () => {}) => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -78,6 +78,6 @@ export const useProducts = (closeForm:()=>void, onMessage:(msg: string)=>void) =
 
   
 
-  return { products, isLoading, error, handleDelete, loadingId, upsertProduct, errors, setErrors };
+  return { products, isFetching, isLoading, error, handleDelete, loadingId, upsertProduct, errors, setErrors };
 
 };

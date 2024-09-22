@@ -3,7 +3,7 @@ import { categoryService } from "../services/categoryService";
 import { Category } from "../types/types";
 import { useState } from "react";
 
-export const useCategories = (closeForm:()=>void, onMessage:(msg: string)=>void, ) => {
+export const useCategories = (closeForm: () => void = () => {},onMessage: (msg: string) => void = () => {}) => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
