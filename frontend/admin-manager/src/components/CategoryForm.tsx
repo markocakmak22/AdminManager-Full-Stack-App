@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { CategoryFormProps } from "../types/types";
-import { categoryService } from "../services/categoryService";
-import { useQueryClient } from "@tanstack/react-query";
-import { Category } from "../types/types";
+import { useCategories } from "../hooks/useCategories";
 
 function CategoryForm({ selectedCategory, closeForm, onMessage }: CategoryFormProps) {
-  const queryClient = useQueryClient();
+  const { upsertCategory, isLoading, errors, setErrors } = useCategories(closeForm, onMessage);
   const [category, setCategory] = useState<{ id: string; name: string }>({ id: "", name: "" });
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
 
   useEffect(() => {
     if (selectedCategory) {
@@ -16,54 +12,25 @@ function CategoryForm({ selectedCategory, closeForm, onMessage }: CategoryFormPr
         id: selectedCategory.id.toString(),
         name: selectedCategory.name,
       });
-      setErrors({})
+      setErrors({});
     } else {
       setCategory({ id: "", name: "" });
-      setErrors({})
+      setErrors({});
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, setErrors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setErrors({})
 
     if (selectedCategory && category.name === selectedCategory.name) {
-      setIsLoading(false);
       closeForm();
       return;
     }
 
-    try {
-      if (category?.id) {
-        const updatedCategory = await categoryService.updateCategory(
-          category.id,
-          { name: category.name }
-        );
-        queryClient.setQueryData<Category[]>(["categories"], (oldCategories = []) =>
-          oldCategories.map((cat) => (cat.id === updatedCategory.id ? updatedCategory : cat))
-        );
-        onMessage("Category updated successfully!");
-      } else {
-        const newCategory = await categoryService.createCategory({
-          name: category.name,
-        });
-        queryClient.setQueryData<Category[]>(["categories"], (oldCategories = []) => [...oldCategories, newCategory]);
-        onMessage("Category created successfully!");
-      }
-
-      setCategory({ id: "", name: "" });
+    await upsertCategory(category, (message: string) => {
+      onMessage(message);
       closeForm();
-    } catch (err: any) {
-      if (err?.response?.data?.errors) {
-        setErrors(err.response.data.errors);
-      } else {
-        setErrors({ name: "An unexpected error occurred." });
-      }
-      console.error("Error:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -93,7 +60,7 @@ function CategoryForm({ selectedCategory, closeForm, onMessage }: CategoryFormPr
             </label>
             <input
               type="text"
-              className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+              className={`form-control ${errors.name ? "is-invalid" : ""}`}
               id="categoryName"
               name="name"
               value={category.name}
@@ -107,19 +74,11 @@ function CategoryForm({ selectedCategory, closeForm, onMessage }: CategoryFormPr
             {errors.name && <div className="invalid-feedback">{errors.name}</div>}
           </div>
           <div className="text-end">
-            <button
-              type="submit"
-              className="btn btn-primary me-2"
-              disabled={isLoading}
-            >
+            <button type="submit" className="btn btn-primary me-2" disabled={isLoading}>
               {isLoading ? "Loading..." : category.id ? "Update Category" : "Add Category"}
             </button>
             {!isLoading && (
-              <button
-                onClick={closeForm}
-                type="button"
-                className="btn btn-secondary"
-              >
+              <button onClick={closeForm} type="button" className="btn btn-secondary">
                 Cancel
               </button>
             )}

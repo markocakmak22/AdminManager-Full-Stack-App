@@ -1,57 +1,12 @@
-import { productService } from "../services/productService";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Product } from "../types/types";
 import { ProductListProps } from "../types/types";
-import { useState } from "react";
+import { useProducts } from "../hooks/useProducts";
 
-function ProductList({ onProductSelect, onMessage, closeForm }: ProductListProps) {
-  const queryClient = useQueryClient();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-
-  const {
-    data: products,
-    isLoading,
-    error,
-  } = useQuery<Product[], Error>({
-    queryKey: ["products"],
-    queryFn: productService.getAllProducts,
-    staleTime: Infinity,
-  });
-
-  const handleDelete = async (id: string | null) => {
-    if (id === null) return;
-    
-    const isConfirmed = window.confirm(
-      "Are you sure you want to delete this product?"
-    );
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setLoadingId(id);
-
-    try {
-      await productService.deleteProduct(id);
-
-      queryClient.setQueryData<Product[]>(["products"], (oldProducts = []) =>
-        oldProducts.filter((product) => product.id !== id)
-      );
-      
-      onMessage("Category deleted successfully!");
-      closeForm()
-    } catch (err) {
-      console.error("Error deleting category:", err);
-    } finally {
-      setLoadingId(null);
-    }
-  };
+function ProductList({ onProductSelect, closeForm, onMessage }: ProductListProps) {
+  const { products, isLoading, error, handleDelete, loadingId } = useProducts(closeForm, onMessage);
 
   if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error loading categories</div>;
+  if (error) return <div>Error loading products</div>;
 
-  console.log("Updated products!")
-  console.log(products)
   return (
     <div className="card mb-4">
       <div className="card-header">
@@ -101,7 +56,7 @@ function ProductList({ onProductSelect, onMessage, closeForm }: ProductListProps
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="text-center">
+                <td colSpan={6} className="text-center">
                   No products found
                 </td>
               </tr>

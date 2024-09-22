@@ -1,23 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { ProductFormProps } from "../types/types";
-import { productService } from "../services/productService";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Product, Category, FormProduct } from "../types/types";
-import { categoryService } from "../services/categoryService";
+import { useProducts } from "../hooks/useProducts";
+import { useCategories } from "../hooks/useCategories";
+import { Category } from "../types/types";
 
 function ProductForm({ selectedProduct, closeForm, onMessage }: ProductFormProps) {
-  const queryClient = useQueryClient();
-
-  const { data: categories } = useQuery<Category[], Error>({
-    queryKey: ["categories"],
-    queryFn: categoryService.getAllCategories,
-    staleTime: Infinity,
-  });
-
-  const initialProduct: FormProduct = {id: "",name: "",description: "",price: null,category_id: ""};
-  const [product, setProduct] = useState<FormProduct>(initialProduct);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
+  const { upsertProduct, isLoading, errors, setErrors } = useProducts(closeForm, onMessage);
+  const [product, setProduct] = useState<{ id: string; name: string; description: string; price: number | null; category_id: string }>({ id: "", name: "", description: "", price: null, category_id: "" });
+  const { categories } = useCategories(closeForm, onMessage);
 
   useEffect(() => {
     if (selectedProduct) {
@@ -30,57 +20,18 @@ function ProductForm({ selectedProduct, closeForm, onMessage }: ProductFormProps
       });
       setErrors({});
     } else {
-      setProduct(initialProduct);
+      setProduct({ id: "", name: "", description: "", price: null, category_id: "" });
       setErrors({});
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, setErrors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setErrors({});
 
-    try {
-
-      if (product.id) {
-        const updatedProduct = await productService.updateProduct(product.id, {
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category_id: product.category_id,
-        });
-
-        queryClient.setQueryData<Product[]>(["products"], (oldProducts = []) => oldProducts.map((prod) => prod.id === updatedProduct.id ? updatedProduct : prod )
-        );
-        onMessage("Product updated successfully!");
-
-      } else {
-        console.log("For create:")
-        console.log(product)
-        const newProduct = await productService.createProduct({
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category_id: product.category_id,
-          
-        });
-        
-        queryClient.setQueryData<Product[]>(["products"], (oldProducts = []) => [...oldProducts, newProduct]);
-        onMessage("Product created successfully!");
-      }
-
-      setProduct(initialProduct);
+    await upsertProduct(product, (message: string) => {
+      onMessage(message);
       closeForm();
-    } catch (err: any) {
-      if (err?.response?.data?.errors) {
-        setErrors(err.response.data.errors);
-      } else {
-        setErrors({ name: "An unexpected error occurred." });
-      }
-      console.error("Error:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   return (
@@ -98,7 +49,7 @@ function ProductForm({ selectedProduct, closeForm, onMessage }: ProductFormProps
               className="form-control"
               id="productId"
               name="id"
-              value={product.id ?? ""}
+              value={product.id}
               readOnly
             />
           </div>
@@ -125,7 +76,7 @@ function ProductForm({ selectedProduct, closeForm, onMessage }: ProductFormProps
               className="form-control"
               id="productDescription"
               name="description"
-              value={product.description ?? ""}
+              value={product.description}
               onChange={(e) => setProduct({ ...product, description: e.target.value })}
             />
           </div>
@@ -151,11 +102,11 @@ function ProductForm({ selectedProduct, closeForm, onMessage }: ProductFormProps
             <select
               className="form-control"
               onChange={(e) => setProduct({ ...product, category_id: e.target.value })}
-              value={product.category_id || ""}
+              value={product.category_id}
               required
             >
               <option value="" disabled>Select a category</option>
-              {categories?.map((category) => (
+              {categories?.map((category: Category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>

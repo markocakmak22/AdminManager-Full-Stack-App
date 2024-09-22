@@ -1,50 +1,10 @@
-import { categoryService } from "../services/categoryService";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Category } from "../types/types";
+import { useCategories } from "../hooks/useCategories";
 import { CategoryListProps } from "../types/types";
-import { useState } from "react";
 
-function CategoryList({ onCategorySelect, onMessage, closeForm }: CategoryListProps) {
-  const queryClient = useQueryClient();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-
-  const {
-    data: categories,
-    isLoading,
-    error,
-  } = useQuery<Category[], Error>({
-    queryKey: ["categories"],
-    queryFn: categoryService.getAllCategories,
-    staleTime: Infinity,
-  });
-
-  const handleDelete = async (id: string) => {
-    const isConfirmed = window.confirm(
-      "Are you sure you want to delete this category?"
-    );
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setLoadingId(id);
-
-    try {
-      await categoryService.deleteCategory(id);
-
-      queryClient.setQueryData<Category[]>(["categories"], (oldCategories = []) =>
-        oldCategories.filter((category) => category.id !== id)
-      );
-      onMessage("Category deleted successfully!");
-      closeForm()
-    } catch (err) {
-      console.error("Error deleting category:", err);
-    } finally {
-      setLoadingId(null);
-    }
-  };
-
-  if (isLoading) return <div>Loading...</div>;
+function CategoryList({ onCategorySelect, closeForm, onMessage }: CategoryListProps) {
+  const { categories, isFetching, error, handleDelete, loadingId } = useCategories(closeForm, onMessage);
+  
+  if (isFetching) return <div>Loading...</div>;
   if (error) return <div>Error loading categories</div>;
 
   return (
@@ -71,7 +31,7 @@ function CategoryList({ onCategorySelect, onMessage, closeForm }: CategoryListPr
                   <td>{category.id}</td>
                   <td>{category.name}</td>
                   <td className="text-end">
-                    {loadingId !== category.id && (
+                    {!loadingId && (
                       <button
                         className="btn btn-primary btn-sm me-2"
                         onClick={() => onCategorySelect(category)}
@@ -82,6 +42,7 @@ function CategoryList({ onCategorySelect, onMessage, closeForm }: CategoryListPr
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => handleDelete(category.id)}
+                      disabled={loadingId === category.id}
                     >
                       {loadingId === category.id ? "Loading..." : "Delete"}
                     </button>
